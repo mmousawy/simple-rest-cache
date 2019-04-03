@@ -24,10 +24,10 @@ class SimpleRestCache
 
   function __construct($request)
   {
-    $this->server = rest_get_server();
-
     if (!is_dir(self::CACHE_DIR)) {
-      mkdir(self::CACHE_DIR);
+      if (!mkdir(self::CACHE_DIR)) {
+        return new \WP_Error('simple_rest_cache_error', 'Cannot create cache folder', ['status' => 404]);
+      }
     }
 
     // Filter any REST requests
@@ -42,7 +42,9 @@ class SimpleRestCache
       return false;
     }
 
-    $restEndpoint = str_replace('/wp-json/wp/v2/', '', $requestUri);
+    $restEndpoint = preg_replace('/.+?wp-json\/wp\/v2\//', '', $requestUri);
+    $restEndpoint = preg_replace('/[^a-z\d-_]/', '-', $restEndpoint);
+
     $cacheFile = self::CACHE_DIR . '/' . $restEndpoint;
 
     if (file_exists($cacheFile)) {
@@ -55,7 +57,16 @@ class SimpleRestCache
       // Manually dispatch the request, cache it and return results
       remove_filter('rest_pre_dispatch', [ $this, 'passThroughCache' ]);
       $result = rest_do_request(new \WP_REST_Request('GET', '/wp/v2/' . $restEndpoint));
-      file_put_contents($cacheFile, json_encode($result->get_data()));
+
+      // Result did not have a successful response, don't cache
+      if ($result->get_status() !== 200) {
+        return $result;
+      }
+
+      if (!file_put_contents($cacheFile, json_encode($result->get_data()))) {
+        return new \WP_Error('simple_rest_cache_error', 'Cannot save result to cache', ['status' => 404]);
+      }
+
       add_filter('rest_pre_dispatch', [ $this, 'passThroughCache' ]);
       return $result;
     }
