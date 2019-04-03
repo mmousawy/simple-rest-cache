@@ -21,7 +21,7 @@ class SimpleRestCache
   private $server;
   const CACHE_DIR = __DIR__ . '/cache';
 
-  function __construct($request)
+  function __construct()
   {
     if (!is_dir(self::CACHE_DIR)) {
       if (!mkdir(self::CACHE_DIR)) {
@@ -29,7 +29,7 @@ class SimpleRestCache
       }
     }
 
-    // Filter any REST requests
+    // Filter all REST requests
     add_filter('rest_pre_dispatch', [ $this, 'passThroughCache' ]);
   }
 
@@ -72,6 +72,6 @@ class SimpleRestCache
   }
 }
 
-add_action('rest_api_init', function($request) {
-  return new SimpleRestCache($request);
+add_action('rest_api_init', function() {
+  return new SimpleRestCache();
 }, 4);
