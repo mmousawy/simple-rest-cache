@@ -8,8 +8,6 @@
  * License:     GPLv3
  */
 
-declare(strict_types = 1);
-
 namespace MMousawy;
 
 use WP_REST_Request;
@@ -24,11 +22,14 @@ class SimpleRestCache
   function __construct()
   {
     if (!is_dir(self::CACHE_DIR)) {
-      if (!mkdir(self::CACHE_DIR)) {
+      if (mkdir(self::CACHE_DIR)) {
         return new WP_Error('simple_rest_cache_error', 'Cannot create cache folder', ['status' => 404]);
       }
     }
+  }
 
+  function initCacheFilter()
+  {
     // Filter all REST requests
     add_filter('rest_pre_dispatch', [ $this, 'passThroughCache' ]);
   }
@@ -70,8 +71,25 @@ class SimpleRestCache
       return $result;
     }
   }
+
+  function resetCache()
+  {
+    if (is_dir(self::CACHE_DIR)) {
+      array_map('unlink', glob(self::CACHE_DIR . '/*'));
+    }
+  }
 }
 
+// Init cache filter when the REST API is initialising
 add_action('rest_api_init', function() {
-  return new SimpleRestCache();
-}, 4);
+  $simpleRestCache = new SimpleRestCache();
+
+  $simpleRestCache->initCacheFilter();
+}, 12);
+
+// When a post has been updated, reset the cache
+add_action('save_post', function() {
+  $simpleRestCache = new SimpleRestCache();
+
+  $simpleRestCache->resetCache();
+}, 10);
