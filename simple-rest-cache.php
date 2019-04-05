@@ -42,8 +42,8 @@ class SimpleRestCache
       return false;
     }
 
-    $restEndpoint = preg_replace('/.+?wp-json\/wp\/v2\//', '', $requestUri);
-    $restEndpoint = preg_replace('/[^a-z\d-_]/', '-', $restEndpoint);
+    $restEndpoint = preg_replace('/.+?wp\-json\/wp\/v2\//', '', $requestUri);
+    $restEndpoint = preg_replace('/[^a-z\d\-\_]/', '-', $restEndpoint);
 
     $cacheFile = self::CACHE_DIR . '/' . $restEndpoint;
 
